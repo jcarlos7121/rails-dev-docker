@@ -42,49 +42,41 @@ ipset create allowed-domains hash:net
 
 # Fetch GitHub meta information and aggregate + add their IP ranges
 echo "Fetching GitHub IP ranges..."
-gh_ranges=$(curl -s --max-time 15 https://api.github.com/meta)
+gh_ranges=$(curl -s --max-time 15 https://api.github.com/meta || true)
 if [ -z "$gh_ranges" ]; then
-    echo "ERROR: Failed to fetch GitHub IP ranges"
-    exit 1
+    echo "WARN: Failed to fetch GitHub IP ranges, skipping"
+elif ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null 2>&1; then
+    echo "WARN: GitHub API response missing required fields, skipping"
+else
+    echo "Processing GitHub IPs..."
+    while read -r cidr; do
+        if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+            echo "WARN: Invalid CIDR range from GitHub meta: $cidr, skipping"
+            continue
+        fi
+        echo "Adding GitHub range $cidr"
+        ipset add allowed-domains "$cidr" -exist
+    done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[] | select(test("^[0-9.]+/[0-9]+$"))' | aggregate -q)
 fi
-
-if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null; then
-    echo "ERROR: GitHub API response missing required fields"
-    exit 1
-fi
-
-echo "Processing GitHub IPs..."
-while read -r cidr; do
-    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
-        echo "ERROR: Invalid CIDR range from GitHub meta: $cidr"
-        exit 1
-    fi
-    echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr" -exist
-done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[] | select(test("^[0-9.]+/[0-9]+$"))' | aggregate -q)
 
 # Fetch Datadog US5 IP ranges and add them
 echo "Fetching Datadog US5 IP ranges..."
-dd_ranges=$(curl -s --max-time 15 https://ip-ranges.us5.datadoghq.com/api.json)
+dd_ranges=$(curl -s --max-time 15 https://ip-ranges.us5.datadoghq.com/api.json || true)
 if [ -z "$dd_ranges" ]; then
-    echo "ERROR: Failed to fetch Datadog US5 IP ranges"
-    exit 1
+    echo "WARN: Failed to fetch Datadog US5 IP ranges, skipping"
+elif ! echo "$dd_ranges" | jq -e '.api.prefixes_ipv4' >/dev/null 2>&1; then
+    echo "WARN: Datadog API response missing required fields, skipping"
+else
+    echo "Processing Datadog US5 IPs..."
+    while read -r cidr; do
+        if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+            echo "WARN: Invalid CIDR range from Datadog US5: $cidr, skipping"
+            continue
+        fi
+        echo "Adding Datadog US5 range $cidr"
+        ipset add allowed-domains "$cidr" -exist
+    done < <(echo "$dd_ranges" | jq -r '.api.prefixes_ipv4[]')
 fi
-
-if ! echo "$dd_ranges" | jq -e '.api.prefixes_ipv4' >/dev/null; then
-    echo "ERROR: Datadog API response missing required fields"
-    exit 1
-fi
-
-echo "Processing Datadog US5 IPs..."
-while read -r cidr; do
-    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
-        echo "ERROR: Invalid CIDR range from Datadog US5: $cidr"
-        exit 1
-    fi
-    echo "Adding Datadog US5 range $cidr"
-    ipset add allowed-domains "$cidr" -exist
-done < <(echo "$dd_ranges" | jq -r '.api.prefixes_ipv4[]')
 
 # Resolve and add other allowed domains
 for domain in \
@@ -99,16 +91,16 @@ for domain in \
     "update.code.visualstudio.com" \
     "mcp.datadoghq.com"; do
     echo "Resolving $domain..."
-    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}' || true)
     if [ -z "$ips" ]; then
-        echo "ERROR: Failed to resolve $domain"
-        exit 1
+        echo "WARN: Failed to resolve $domain, skipping"
+        continue
     fi
-    
+
     while read -r ip; do
         if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            echo "ERROR: Invalid IP from DNS for $domain: $ip"
-            exit 1
+            echo "WARN: Invalid IP from DNS for $domain: $ip, skipping"
+            continue
         fi
         echo "Adding $ip for $domain"
         ipset add allowed-domains "$ip" -exist

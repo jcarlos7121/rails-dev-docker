@@ -194,6 +194,7 @@ services:
       start_period: 15s
 
   claude:
+    image: ${PROJECT_PREFIX}/claude:latest
     build:
       target: claude
       args:
