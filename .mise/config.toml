@@ -47,11 +47,13 @@ run = "docker compose run app bundle exec rake ci:build:commit"
 
 [tasks.init]
 description = "Clone a repo into worktrees: mise run init <user/repo | git-url>"
-run = ".scripts/init-repo.sh {{arg(name=\"repo\")}}"
+usage = 'arg "<repo>" help="user/repo or git URL"'
+run = '.scripts/init-repo.sh "$usage_repo"'
 
 [tasks.wt]
 description = "Create a worktree: mise run wt <branch|PR#|new-branch-name>"
-run = ".scripts/create-worktree.sh {{arg(name=\"branch\")}}"
+usage = 'arg "<branch>" help="existing branch name, PR number, or new branch name"'
+run = '.scripts/create-worktree.sh "$usage_branch"'
 
 [tasks."wt:ls"]
 description = "List all worktrees"
