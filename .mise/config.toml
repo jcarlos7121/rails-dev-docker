@@ -14,7 +14,14 @@ alias = "v"
 
 [tasks.test]
 description = "Start the Retest runner."
-run = "docker compose run -e DISABLE_COVERAGE=true --rm -it app sh -c 'gem list -i retest > /dev/null 2>&1 || gem install retest && retest --rails'"
+run = """
+  CMD='gem list -i retest > /dev/null 2>&1 || gem install retest && retest --rails'
+  if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
+    docker compose exec -e DISABLE_COVERAGE=true -it app sh -c "$CMD"
+  else
+    docker compose run -e DISABLE_COVERAGE=true --rm -it app sh -c "$CMD"
+  fi
+"""
 alias = "t"
 
 [tasks.rails]
@@ -23,12 +30,24 @@ run = "docker compose exec app /bin/zsh"
 
 [tasks.rails_tests]
 description = "Run the Rails unit tests."
-run = "docker compose run --rm app bin/rails test"
+run = """
+  if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
+    docker compose exec app bin/rails test
+  else
+    docker compose run --rm app bin/rails test
+  fi
+"""
 alias = "rt"
 
 [tasks.rails_sytem_tests]
 description = "Run the Rails system tests."
-run = "docker compose run --rm app bin/rails test:system"
+run = """
+  if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
+    docker compose exec app bin/rails test:system
+  else
+    docker compose run --rm app bin/rails test:system
+  fi
+"""
 alias = "rst"
 
 [tasks.console]

@@ -67,6 +67,7 @@ RUN apt-get update -qq && \
   kitty-terminfo \
   musl-dev \
   zsh \
+  libimage-exiftool-perl \
   build-essential \
   git \
   libvips \
