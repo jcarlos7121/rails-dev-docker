@@ -27,6 +27,25 @@ services:
     networks:
       - proxy
 
+  home:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wt-home.rule=Host(`wt.localhost`)"
+      - "traefik.http.routers.wt-home.entrypoints=web"
+      - "traefik.http.routers.wt-home.service=wt-home"
+      - "traefik.http.services.wt-home.loadbalancer.server.port=80"
+      # Same host, /api path → Traefik's internal API (same-origin for fetch).
+      # No explicit priority — longer rules win automatically.
+      - "traefik.http.routers.wt-api.rule=Host(`wt.localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.wt-api.entrypoints=web"
+      - "traefik.http.routers.wt-api.service=api@internal"
+
 networks:
   proxy:
     name: ${PROJECT_PREFIX:-filial}_proxy
