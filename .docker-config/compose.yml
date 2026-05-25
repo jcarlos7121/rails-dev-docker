@@ -10,7 +10,8 @@ services:
     stdin_open: true
     env_file: .env
     environment:
-      RUSTFS_ENDPOINT: http://rustfs:${RUSTFS_API_PORT:-9000}
+      RUSTFS_ENDPOINT: ${RUSTFS_ENDPOINT}
+      DOMAIN: ${WORKTREE_HOST}
       GEM_VOLUME: ${GEM_VOLUME}
     deploy:
       resources:
@@ -25,9 +26,18 @@ services:
         condition: service_healthy
     networks:
       - dev
+      - proxy
+    extra_hosts:
+      - "${WORKTREE_HOST}:host-gateway"
+      - "${S3_HOST}:host-gateway"
+      - "${RUSTFS_UI_HOST}:host-gateway"
     ports:
-      - "0.0.0.0:${APP_PORT:-3000}:3000"
       - "0.0.0.0:${RUBY_DEBUG_PORT:-38698}:38698"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-app.rule=Host(`${WORKTREE_HOST}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-app.entrypoints=web"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-app.loadbalancer.server.port=3000"
     volumes:
       - ../${CURRENT_WORKTREE_NAME}:/app
       - ${MAIN_WORKTREE_PATH}/.git:${MAIN_WORKTREE_PATH}/.git:ro
@@ -147,6 +157,10 @@ services:
     #   - "${PLAYWRIGHT_PORT:-8888}:8888"
     networks:
       - dev
+    extra_hosts:
+      - "${WORKTREE_HOST}:host-gateway"
+      - "${S3_HOST}:host-gateway"
+      - "${RUSTFS_UI_HOST}:host-gateway"
     command: ["npx", "-y", "playwright@1.59.0", "run-server", "--port", "8888"]
 
   rustfs-init:
@@ -177,17 +191,25 @@ services:
       - RUSTFS_ACCESS_KEY=rustfsadmin
       - RUSTFS_SECRET_KEY=rustfsadmin
       - RUSTFS_CONSOLE_ENABLE=true
-      - RUSTFS_ADDRESS=0.0.0.0:${RUSTFS_API_PORT:-9000}
-      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:${RUSTFS_UI_PORT:-9001}
-    ports:
-      - "${RUSTFS_API_PORT:-9000}:${RUSTFS_API_PORT:-9000}"
-      - "${RUSTFS_UI_PORT:-9001}:${RUSTFS_UI_PORT:-9001}"
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
     volumes:
       - rustfs_data:/data
     networks:
       - dev
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-s3.rule=Host(`${S3_HOST}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-s3.entrypoints=web"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-s3.service=${COMPOSE_PROJECT_NAME}-s3"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-s3.loadbalancer.server.port=9000"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-s3-ui.rule=Host(`${RUSTFS_UI_HOST}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-s3-ui.entrypoints=web"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-s3-ui.service=${COMPOSE_PROJECT_NAME}-s3-ui"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-s3-ui.loadbalancer.server.port=9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${RUSTFS_API_PORT}/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -225,10 +247,15 @@ services:
       CLAUDE_CONFIG_DIR: "/home/appuser/.claude"
       POWERLEVEL9K_DISABLE_GITSTATUS: "true"
       SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-      RUSTFS_ENDPOINT: http://rustfs:${RUSTFS_API_PORT:-9000}
+      RUSTFS_ENDPOINT: ${RUSTFS_ENDPOINT}
+      DOMAIN: ${WORKTREE_HOST}
     profiles: ["do_not_start"]
     networks:
       - dev
+    extra_hosts:
+      - "${WORKTREE_HOST}:host-gateway"
+      - "${S3_HOST}:host-gateway"
+      - "${RUSTFS_UI_HOST}:host-gateway"
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -254,3 +281,6 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 1400 # Fix for access when wireguard VPN is on host
+  proxy:
+    external: true
+    name: ${PROJECT_PREFIX}_proxy

@@ -20,6 +20,7 @@ else
   exit 1
 fi
 
+repo_name=$(sanitize_worktree_name "$repo_name")
 clone_dir="${root}/${repo_name}"
 
 if [ -d "$clone_dir" ]; then
@@ -71,9 +72,10 @@ echo "Repo initialized"
 echo "  Repository:      ${clone_url}"
 echo "  Directory:       ${clone_dir}"
 echo "  Worktree ID:     0"
-echo "  App port:        3000"
+echo "  App URL:         http://${repo_name}.localhost"
+echo "  RustFS API URL:  http://s3.${repo_name}.localhost"
+echo "  RustFS UI URL:   http://s3-ui.${repo_name}.localhost"
 echo "  Neovim port:     7000"
-echo "  RustFS API port: 9000"
-echo "  RustFS UI port:  9100"
+echo "  Ruby debug port: 33000"
 echo ""
 echo "cd ${clone_dir} to get started"

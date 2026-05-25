@@ -11,9 +11,18 @@ run_git() {
   git -C "$git_dir" "$@"
 }
 
-# Sanitize the same way as creation
-clean_name=$(echo "$input" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g; s/^-//; s/-$//')
+# Sanitize the same way as creation. Note: this only resolves the
+# canonical (un-hashed) slug. If the worktree was created with a hash
+# suffix due to name collision, pass the full directory name directly.
+clean_name=$(sanitize_worktree_name "$input")
 worktree_dir="${root}/${clean_name}"
+
+# If the un-hashed slug doesn't exist, try the input verbatim — it may
+# already be the hash-suffixed dir name.
+if [ ! -d "$worktree_dir" ] && [ -d "${root}/${input}" ]; then
+  clean_name="$input"
+  worktree_dir="${root}/${input}"
+fi
 
 if [ ! -d "$worktree_dir" ]; then
   echo "Worktree not found: $worktree_dir"

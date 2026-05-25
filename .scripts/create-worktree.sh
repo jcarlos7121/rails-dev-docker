@@ -40,12 +40,32 @@ fi
 
 # --- Sanitize for directory and compose project name ---
 
-clean_name=$(echo "$branch" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g; s/^-//; s/-$//')
+clean_name=$(sanitize_worktree_name "$branch")
 worktree_dir="${root}/${clean_name}"
 
-if [ -d "$worktree_dir" ]; then
-  echo "Worktree already exists: $worktree_dir"
+# Refuse if this exact branch is already checked out in a worktree —
+# that's a retry, not a name collision.
+if run_git worktree list --porcelain | awk '/^branch / {print $2}' | grep -qx "refs/heads/${branch}"; then
+  echo "Branch '${branch}' is already checked out:"
+  run_git worktree list | grep -F "[${branch}]" || true
   exit 1
+fi
+
+# Different branch, but its sanitized name collides with an existing
+# worktree directory. Append a short deterministic hash of the full
+# branch name so both can coexist.
+if [ -d "$worktree_dir" ]; then
+  hash=$(printf '%s' "$branch" | sha1sum | cut -c1-4)
+  base_len=$((WORKTREE_NAME_MAX_LEN - 5))
+  short_base=$(printf '%s' "$clean_name" | cut -c1-"$base_len" | sed 's/-$//')
+  clean_name="${short_base}-${hash}"
+  worktree_dir="${root}/${clean_name}"
+
+  if [ -d "$worktree_dir" ]; then
+    echo "Name collision unresolvable — '${worktree_dir}' also exists"
+    exit 1
+  fi
+  echo "Name collision — using hash-suffixed slug: ${clean_name}"
 fi
 
 REGISTRY="${root}/ports.registry"
@@ -108,10 +128,14 @@ echo "✓ Worktree created"
 echo "  Branch:          ${branch}"
 echo "  Directory:       ${worktree_dir}"
 echo "  Worktree ID:     ${next_id}"
-echo "  App port:        $((3000 + next_id))"
+echo "  App URL:         http://${clean_name}.localhost"
+echo "  RustFS API URL:  http://s3.${clean_name}.localhost"
+echo "  RustFS UI URL:   http://s3-ui.${clean_name}.localhost"
 echo "  Neovim port:     $((7000 + next_id))"
-echo "  RustFS API port: $((9000 + next_id))"
-echo "  RustFS UI port:  $((9100 + next_id))"
+echo "  Ruby debug port: $((33000 + next_id))"
+echo ""
+echo "Note: 'mise run up' auto-starts the proxy; if running compose directly,"
+echo "      run 'mise run proxy:up' first."
 echo ""
 cd "${worktree_dir}"
 

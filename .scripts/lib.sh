@@ -1,3 +1,22 @@
+# Maximum length for a sanitized worktree name. Keeps DNS labels well under
+# the 63-char limit and produces readable browser URLs like
+# `worktree-name.localhost` and `s3.worktree-name.localhost`.
+WORKTREE_NAME_MAX_LEN=40
+
+# Sanitize a branch/worktree name into a safe directory + hostname slug:
+# lowercase, non-alphanumerics → '-', collapse runs of '-', strip leading/
+# trailing '-', cap at $WORKTREE_NAME_MAX_LEN chars, then strip any trailing
+# '-' that the cap may have left behind.
+sanitize_worktree_name() {
+  local raw="$1"
+  echo "$raw" \
+    | sed 's/[^a-zA-Z0-9]/-/g' \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed 's/--*/-/g; s/^-//; s/-$//' \
+    | cut -c1-"$WORKTREE_NAME_MAX_LEN" \
+    | sed 's/-$//'
+}
+
 # Returns the absolute path to the orchestration root.
 # Resolved from the location of this script file, so it works regardless of $PWD.
 find_project_root() {

@@ -6,7 +6,6 @@ GEM_VOLUME_BASE = "{{env.GEM_VOLUME_BASE | default(value='default_shared_gems')}
 
 [tasks.nvim]
 description = "Connect to Neovim in the container with theme sync."
-# We use a shell subquery to detect Kitty's background and inject the '-c' flag
 run = """
   nvim --remote-ui --server localhost:{{ env.NVIM_PORT }}
 """
@@ -14,6 +13,7 @@ alias = "v"
 
 [tasks.test]
 description = "Start the Retest runner."
+depends = ["up"]
 run = """
   CMD='gem list -i retest > /dev/null 2>&1 || gem install retest && retest --rails'
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
@@ -30,6 +30,7 @@ run = "docker compose exec app /bin/zsh"
 
 [tasks.rails_tests]
 description = "Run the Rails unit tests."
+depends = ["up"]
 run = """
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
     docker compose exec app bin/rails test
@@ -41,6 +42,7 @@ alias = "rt"
 
 [tasks.rails_sytem_tests]
 description = "Run the Rails system tests."
+depends = ["up"]
 run = """
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
     docker compose exec app bin/rails test:system
@@ -57,8 +59,30 @@ alias = "c"
 
 [tasks.up]
 description = "Start the application."
+depends = ["proxy:up"]
 run = "docker compose up -d"
 alias = "u"
+
+[tasks."proxy:up"]
+description = "Start the shared Traefik reverse proxy (one stack, all worktrees)."
+run = """
+  COMPOSE_PROJECT_NAME=${PROJECT_PREFIX}-proxy \
+  docker compose -f {{config_root}}/.docker-config/proxy/compose.yml up -d
+"""
+
+[tasks."proxy:down"]
+description = "Stop the shared Traefik reverse proxy."
+run = """
+  COMPOSE_PROJECT_NAME=${PROJECT_PREFIX}-proxy \
+  docker compose -f {{config_root}}/.docker-config/proxy/compose.yml down
+"""
+
+[tasks."proxy:logs"]
+description = "Tail logs from the Traefik proxy."
+run = """
+  COMPOSE_PROJECT_NAME=${PROJECT_PREFIX}-proxy \
+  docker compose -f {{config_root}}/.docker-config/proxy/compose.yml logs -f
+"""
 
 [tasks.ci]
 description = "Run the CI linting and tests."
@@ -77,6 +101,26 @@ run = '.scripts/create-worktree.sh "$usage_branch"'
 [tasks."wt:ls"]
 description = "List all worktrees"
 run = ".scripts/list-worktrees.sh"
+
+[tasks."wt:open"]
+description = "Open the current worktree URL in a browser. Pass a browser binary name (e.g. firefox) to override xdg-open."
+usage = 'arg "[browser]" help="optional browser binary; defaults to xdg-open"'
+run = """
+  url="http://${WORKTREE_HOST}"
+  browser="${usage_browser:-}"
+  if [ -n "$browser" ]; then
+    if ! command -v "$browser" >/dev/null 2>&1; then
+      echo "Error: '$browser' not found in PATH" >&2
+      exit 1
+    fi
+    exec "$browser" "$url"
+  fi
+  if ! command -v xdg-open >/dev/null 2>&1; then
+    echo "xdg-open not found. Pass a browser binary: mise run wt:open firefox" >&2
+    exit 1
+  fi
+  exec xdg-open "$url"
+"""
 
 [tasks."db:dump"]
 description = "Dump the development database and RustFS data for faster container setup."

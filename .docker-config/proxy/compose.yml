@@ -1,0 +1,26 @@
+services:
+  traefik:
+    image: traefik:v3.7
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.network=${PROJECT_PREFIX:-filial}_proxy"
+      - "--entryPoints.web.address=:80"
+      - "--api.insecure=true"
+      - "--log.level=INFO"
+      - "--accesslog=false"
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    name: ${PROJECT_PREFIX:-filial}_proxy
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1400
