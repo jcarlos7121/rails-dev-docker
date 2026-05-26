@@ -33,9 +33,9 @@ description = "Run the Rails unit tests."
 depends = ["up"]
 run = """
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
-    docker compose exec app bin/rails test
+    docker compose exec app bin/rails test "$@"
   else
-    docker compose run --rm app bin/rails test
+    docker compose run --rm app bin/rails test "$@"
   fi
 """
 alias = "rt"
@@ -45,16 +45,22 @@ description = "Run the Rails system tests."
 depends = ["up"]
 run = """
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
-    docker compose exec app bin/rails test:system
+    docker compose exec app bin/rails test:system "$@"
   else
-    docker compose run --rm app bin/rails test:system
+    docker compose run --rm app bin/rails test:system "$@"
   fi
 """
 alias = "rst"
 
 [tasks.console]
 description = "Enter the Rails console."
-run = "docker compose run -e DISABLE_LOGCRAFT=true --rm -it app bin/rails console"
+run = """
+  if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
+    docker compose exec app bin/rails console "$@"
+  else
+    docker compose run -e DISABLE_LOGCRAFT=true --rm -it app bin/rails console "$@"
+  fi
+"""
 alias = "c"
 
 [tasks.up]
