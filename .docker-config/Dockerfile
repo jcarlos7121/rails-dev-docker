@@ -67,6 +67,8 @@ RUN apt-get update -qq && \
   kitty-terminfo \
   musl-dev \
   zsh \
+  fd-find \
+  ripgrep \
   libimage-exiftool-perl \
   build-essential \
   git \
