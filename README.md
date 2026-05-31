@@ -10,8 +10,8 @@
 
 `curl -fsSL https://raw.githubusercontent.com/jbigler/rails-dev-docker/main/.scripts/bootstrap.sh | sh -s -- [-p prefix] user/repo`
 
-`project` = optional name for project/folder (will use repo name by default)
-`user/repo` = Github user/repo (or a full URL to git repository)
+- `prefix` = optional name for project/folder (will use repo name by default)
+- `user/repo` = Github user/repo (or a full URL to git repository)
 
 ## Mise tasks
 
