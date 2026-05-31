@@ -67,6 +67,7 @@ alias = "c"
 description = "Start the application."
 depends = ["proxy:up"]
 run = """
+  mkdir -p {{config_root}}/.docker-config/home/.ssh {{config_root}}/.docker-config/home/.config
   for vol in claude_config claude_bashhistory "$GEM_VOLUME" "$NODE_MODULES_VOLUME"; do
     docker volume inspect "$vol" >/dev/null 2>&1 || docker volume create "$vol" >/dev/null
   done
