@@ -1,0 +1,85 @@
+#!/usr/bin/env sh
+set -eu
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: bootstrap.sh [-p <project-prefix>] <user/repo | git-url>
+
+  -p  project prefix used for docker volume/network names and
+      PROJECT_PREFIX in mise.local.toml (default: <repo> basename)
+
+Bootstraps a new rails-dev-docker workspace:
+  1. Clones rails-dev-docker into ./<repo-name>/
+  2. Writes ./<repo-name>/mise.local.toml with PROJECT_PREFIX et al.
+  3. Creates the external docker volumes and proxy network
+  4. Invokes .scripts/init-repo.sh to clone the rails project into
+     a default-branch-named subfolder
+EOF
+  exit 1
+}
+
+prefix=""
+while getopts ":p:h" opt; do
+  case "$opt" in
+    p) prefix="$OPTARG" ;;
+    h) usage ;;
+    *) usage ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+input="${1:-}"
+[ -z "$input" ] && usage
+
+name=$(basename "$input" .git)
+prefix="${prefix:-$name}"
+dest="$(pwd)/$name"
+
+if [ -e "$dest" ]; then
+  echo "Error: $dest already exists" >&2
+  exit 1
+fi
+
+echo "Cloning rails-dev-docker into $dest..."
+git clone https://github.com/jbigler/rails-dev-docker.git "$dest"
+
+echo "Writing $dest/mise.local.toml (PROJECT_PREFIX=$prefix)..."
+cat > "$dest/mise.local.toml" <<EOF
+[env]
+PROJECT_PREFIX = "$prefix"
+GEM_VOLUME_BASE = "${prefix}_shared_gems"
+NODE_MODULES_VOLUME = "${prefix}_shared_node_modules"
+EOF
+
+ensure_volume() {
+  if docker volume inspect "$1" >/dev/null 2>&1; then
+    echo "  volume $1 (exists)"
+  else
+    docker volume create "$1" >/dev/null
+    echo "  volume $1 (created)"
+  fi
+}
+
+ensure_network() {
+  if docker network inspect "$1" >/dev/null 2>&1; then
+    echo "  network $1 (exists)"
+  else
+    docker network create "$1" >/dev/null
+    echo "  network $1 (created)"
+  fi
+}
+
+echo "Provisioning external docker resources..."
+ensure_volume claude_config
+ensure_volume claude_bashhistory
+ensure_volume "${prefix}_shared_node_modules"
+ensure_network "${prefix}_proxy"
+
+echo "Running init-repo.sh for $input..."
+"$dest/.scripts/init-repo.sh" "$input"
+
+echo ""
+echo "Bootstrap complete."
+echo "Next steps:"
+echo "  cd $dest && mise trust && mise install"
+echo "  cd <branch-folder> && mise trust && mise install && mise run up"
