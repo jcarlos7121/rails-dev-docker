@@ -19,6 +19,15 @@ EOF
   exit 1
 }
 
+missing=""
+command -v docker >/dev/null 2>&1 || missing="${missing}\n  - docker:    https://docs.docker.com/engine/install/"
+command -v mise   >/dev/null 2>&1 || missing="${missing}\n  - mise:      https://mise.jdx.dev/getting-started.html  (or: curl https://mise.run | sh)"
+command -v git    >/dev/null 2>&1 || missing="${missing}\n  - git:       install via your system package manager"
+if [ -n "$missing" ]; then
+  printf "Missing required tools:%b\n" "$missing" >&2
+  exit 1
+fi
+
 prefix=""
 while getopts ":p:h" opt; do
   case "$opt" in
