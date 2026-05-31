@@ -6,22 +6,30 @@ input="${1:?Usage: mise run init <user/repo | git-url>}"
 source "$(dirname "$0")/lib.sh"
 root=$(find_project_root)
 
-# --- Resolve clone URL and repo name ---
+# --- Resolve clone URL ---
 
 if [[ "$input" =~ ^https?:// || "$input" =~ ^git@ ]]; then
   clone_url="$input"
-  repo_name=$(basename "$input" .git)
 elif [[ "$input" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]]; then
   clone_url="https://github.com/${input}.git"
-  repo_name=$(echo "$input" | cut -d/ -f2)
 else
   echo "Error: unrecognized format '${input}'"
   echo "  Expected: user/repo  or  https://github.com/user/repo.git"
   exit 1
 fi
 
-repo_name=$(sanitize_worktree_name "$repo_name")
-clone_dir="${root}/${repo_name}"
+# --- Detect the remote's default branch and use it as the folder name ---
+
+default_branch=$(git ls-remote --symref "$clone_url" HEAD 2>/dev/null \
+  | awk '/^ref:/ { sub("refs/heads/", "", $2); print $2; exit }')
+
+if [ -z "$default_branch" ]; then
+  echo "Error: could not detect default branch for ${clone_url}"
+  exit 1
+fi
+
+branch_slug=$(sanitize_worktree_name "$default_branch")
+clone_dir="${root}/${branch_slug}"
 
 if [ -d "$clone_dir" ]; then
   echo "Error: directory already exists: ${clone_dir}"
@@ -30,8 +38,15 @@ fi
 
 # --- Clone ---
 
-echo "Cloning ${clone_url} into ${clone_dir}..."
+echo "Cloning ${clone_url} (branch ${default_branch}) into ${clone_dir}..."
 git clone "$clone_url" "$clone_dir"
+
+# --- Locally ignore mise.local.toml in the cloned repo ---
+
+exclude_file="${clone_dir}/.git/info/exclude"
+if [ -f "$exclude_file" ] && ! grep -qxF 'mise.local.toml' "$exclude_file"; then
+  echo 'mise.local.toml' >> "$exclude_file"
+fi
 
 # --- Register as base worktree (ID 0) in ports registry ---
 
@@ -39,7 +54,7 @@ REGISTRY="${root}/ports.registry"
 if [ -f "$REGISTRY" ]; then
   echo "Warning: ${REGISTRY} already exists, skipping registration"
 else
-  echo "${repo_name}:0" > "$REGISTRY"
+  echo "${branch_slug}:0" > "$REGISTRY"
 fi
 
 # --- Generate mise.local.toml from template ---
