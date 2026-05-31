@@ -12,7 +12,7 @@ Usage: bootstrap.sh [-p <project-prefix>] <user/repo | git-url>
 Bootstraps a new rails-dev-docker workspace:
   1. Clones rails-dev-docker into ./<prefix>/
   2. Writes ./<prefix>/mise.local.toml with PROJECT_PREFIX et al.
-  3. Creates the external docker volumes and proxy network
+  3. Creates the external docker volumes
   4. Invokes .scripts/init-repo.sh to clone the rails project into
      a default-branch-named subfolder
 EOF
@@ -60,20 +60,10 @@ ensure_volume() {
   fi
 }
 
-ensure_network() {
-  if docker network inspect "$1" >/dev/null 2>&1; then
-    echo "  network $1 (exists)"
-  else
-    docker network create "$1" >/dev/null
-    echo "  network $1 (created)"
-  fi
-}
-
-echo "Provisioning external docker resources..."
+echo "Provisioning external docker volumes..."
 ensure_volume claude_config
 ensure_volume claude_bashhistory
 ensure_volume "${prefix}_shared_node_modules"
-ensure_network "${prefix}_proxy"
 
 echo "Running init-repo.sh for $input..."
 "$dest/.scripts/init-repo.sh" "$input"
