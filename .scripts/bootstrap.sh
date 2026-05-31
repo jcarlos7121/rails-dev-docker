@@ -5,12 +5,13 @@ usage() {
   cat >&2 <<'EOF'
 Usage: bootstrap.sh [-p <project-prefix>] <user/repo | git-url>
 
-  -p  project prefix used for docker volume/network names and
-      PROJECT_PREFIX in mise.local.toml (default: <repo> basename)
+  -p  project prefix used for the workspace folder name, PROJECT_PREFIX
+      in mise.local.toml, and docker volume/network names
+      (default: <repo> basename)
 
 Bootstraps a new rails-dev-docker workspace:
-  1. Clones rails-dev-docker into ./<repo-name>/
-  2. Writes ./<repo-name>/mise.local.toml with PROJECT_PREFIX et al.
+  1. Clones rails-dev-docker into ./<prefix>/
+  2. Writes ./<prefix>/mise.local.toml with PROJECT_PREFIX et al.
   3. Creates the external docker volumes and proxy network
   4. Invokes .scripts/init-repo.sh to clone the rails project into
      a default-branch-named subfolder
@@ -31,9 +32,8 @@ shift $((OPTIND - 1))
 input="${1:-}"
 [ -z "$input" ] && usage
 
-name=$(basename "$input" .git)
-prefix="${prefix:-$name}"
-dest="$(pwd)/$name"
+prefix="${prefix:-$(basename "$input" .git)}"
+dest="$(pwd)/$prefix"
 
 if [ -e "$dest" ]; then
   echo "Error: $dest already exists" >&2
