@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<base target="_blank">
 <title>Worktrees</title>
 <style>
   :root {
@@ -83,8 +84,8 @@
 </header>
 <div id="worktrees"></div>
 <script>
-const LABELS = { app: "app", email: "email", "s3 console": "s3 console", s3: "s3" };
-const ORDER = ["app", "email", "s3 console", "s3"];
+const LABELS = { app: "app", email: "email", lookbook: "lookbook", "s3 console": "s3 console" };
+const ORDER = ["app", "email", "lookbook", "s3 console"];
 
 function extractHost(rule) {
   const m = rule.match(/Host\(`([^`]+)`\)/);
@@ -93,7 +94,7 @@ function extractHost(rule) {
 
 function classify(host) {
   if (host.startsWith("s3-ui.")) return { name: host.slice(6).replace(/\.localhost$/, ""), kind: "s3 console" };
-  if (host.startsWith("s3.")) return { name: host.slice(3).replace(/\.localhost$/, ""), kind: "s3" };
+  if (host.startsWith("s3.")) return null;
   if (host === "wt.localhost") return null;
   return { name: host.replace(/\.localhost$/, ""), kind: "app" };
 }
@@ -119,7 +120,10 @@ async function load() {
     if (!c) continue;
     if (!worktrees[c.name]) worktrees[c.name] = {};
     worktrees[c.name][c.kind] = `http://${host}`;
-    if (c.kind === "app") worktrees[c.name].email = `http://${host}/letter_opener`;
+    if (c.kind === "app") {
+      worktrees[c.name].email = `http://${host}/letter_opener`;
+      worktrees[c.name].lookbook = `http://${host}/lookbook`;
+    }
   }
 
   const sorted = Object.entries(worktrees).sort(([a], [b]) => a.localeCompare(b));
