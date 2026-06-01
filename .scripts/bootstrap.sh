@@ -50,7 +50,7 @@ if [ -e "$dest" ]; then
 fi
 
 echo "Cloning rails-dev-docker into $dest..."
-git clone https://github.com/jbigler/rails-dev-docker.git "$dest"
+git clone https://github.com/jcarlos7121/rails-dev-docker.git "$dest"
 
 echo "Writing $dest/mise.local.toml (PROJECT_PREFIX=$prefix)..."
 cat > "$dest/mise.local.toml" <<EOF
