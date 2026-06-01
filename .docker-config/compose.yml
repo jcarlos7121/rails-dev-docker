@@ -149,19 +149,30 @@ services:
     command: ["/usr/local/bin/nvim", "--headless", "--listen", "0.0.0.0:7777"]
 
   playwright:
-    image: mcr.microsoft.com/playwright:v1.59.0-noble
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
     shm_size: "1gb"
     ipc: host
     init: true
-    # ports:
-    #   - "${PLAYWRIGHT_PORT:-8888}:8888"
+    environment:
+      HEADLESS_SYSTEM_TESTS: ${HEADLESS_SYSTEM_TESTS:-0}
     networks:
       - dev
+      - proxy
     extra_hosts:
       - "${WORKTREE_HOST}:host-gateway"
       - "${S3_HOST}:host-gateway"
       - "${RUSTFS_UI_HOST}:host-gateway"
-    command: ["npx", "-y", "playwright@1.59.0", "run-server", "--port", "8888"]
+    volumes:
+      - ../.docker-config/entrypoint-playwright.sh:/usr/local/bin/entrypoint-playwright.sh:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vnc.rule=Host(`vnc.${WORKTREE_HOST}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vnc.entrypoints=web"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vnc.service=${COMPOSE_PROJECT_NAME}-vnc"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-vnc.loadbalancer.server.port=8080"
+    entrypoint: ["entrypoint-playwright.sh"]
 
   rustfs-init:
     image: alpine
