@@ -18,6 +18,8 @@
 
 Run from a worktree directory unless noted otherwise. Aliases shown in parentheses.
 
+_Tip: Set a shell alias for "mise run" to "mr"._
+
 ### Lifecycle
 
 - `mise run up` (`u`) — start the app (ensures external volumes, brings up the proxy first)
