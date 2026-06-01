@@ -3,6 +3,8 @@ UID = "{{exec(command='id -u')}}"
 GID = "{{exec(command='id -g')}}"
 PROJECT_PREFIX = "{{env.PROJECT_PREFIX | default(value='default')}}"
 GEM_VOLUME_BASE = "{{env.GEM_VOLUME_BASE | default(value='default_shared_gems')}}"
+SSH_PATH = "{{ env.SSH_PATH | default(value = env.HOME ~ '/.ssh') }}"
+NVIM_CONFIG_DIR = "{{ env.NVIM_CONFIG_DIR | default(value = env.HOME ~ '/.config/nvim') }}"
 
 [tasks.nvim]
 description = "Connect to Neovim in the container with theme sync."
