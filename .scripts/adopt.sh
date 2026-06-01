@@ -17,7 +17,7 @@ app_path="$(cd "$app_in" && pwd -P)"
 [ -d "$app_path/.git" ] || { echo "Error: $app_path is not a git repo root" >&2; exit 1; }
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-base="$(basename "$app_path")"           # e.g. rails-core — MUST match real basename
+base="$(basename "$app_path")"           # e.g. myapp — MUST match the real basename
 prefix="${prefix:-$base}"
 
 # --- Detect development DB name (best-effort; fallback to <prefix>_development) ---

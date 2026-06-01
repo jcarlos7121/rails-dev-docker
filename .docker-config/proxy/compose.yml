@@ -5,7 +5,7 @@ services:
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
-      - "--providers.docker.network=${PROJECT_PREFIX:-filial}_proxy"
+      - "--providers.docker.network=${PROJECT_PREFIX:-default}_proxy"
       - "--entryPoints.web.address=:80"
       # Preserve encoded characters verbatim — S3 signed URLs depend on
       # encoded slashes and percent signs matching the signature exactly.
@@ -48,7 +48,7 @@ services:
 
 networks:
   proxy:
-    name: ${PROJECT_PREFIX:-filial}_proxy
+    name: ${PROJECT_PREFIX:-default}_proxy
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 1400
