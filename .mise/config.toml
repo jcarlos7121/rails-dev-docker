@@ -29,36 +29,46 @@ description = "Enter the running Rails container."
 run = "docker compose exec app /bin/zsh"
 
 [tasks.rails_tests]
-description = "Run the Rails unit tests."
+description = "Run the Rails unit tests. Pass any 'rails test' args (files, file:line, -n, --seed, ...) to run a subset."
 depends = ["up"]
+usage = 'arg "[args]" var=#true help="args forwarded to bin/rails test (e.g. test/models/foo.rb:42, -n /pattern/, --seed 123)"'
 run = """
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
-    docker compose exec app bin/rails test "$@"
+    docker compose exec app bin/rails test $usage_args
   else
-    docker compose run --rm app bin/rails test "$@"
+    docker compose run --rm app bin/rails test $usage_args
   fi
 """
 alias = "rt"
 
 [tasks.rails_sytem_tests]
-description = "Run the Rails system tests."
+description = "Run the Rails system tests. Pass any 'rails test:system' args (files, file:line, -n, --seed, ...) to run a subset."
 depends = ["up"]
+usage = 'arg "[args]" var=#true help="args forwarded to the test runner (e.g. test/system/foo_test.rb:42, --seed 123)"'
 run = """
+  # `rails test:system` hardcodes the whole test/system dir, so when a specific test
+  # file is given, run it through the `rails test` runner (which honors explicit paths).
+  # Otherwise stick with `test:system` so flags like --seed/-n apply to the full suite.
+  case "$usage_args" in
+    *_test.rb*) test_target="test $usage_args" ;;
+    *)          test_target="test:system $usage_args" ;;
+  esac
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
-    docker compose exec app bin/rails test:system "$@"
+    docker compose exec app bin/rails $test_target
   else
-    docker compose run --rm app bin/rails test:system "$@"
+    docker compose run --rm app bin/rails $test_target
   fi
 """
 alias = "rst"
 
 [tasks.console]
-description = "Enter the Rails console."
+description = "Enter the Rails console. Any args are forwarded to bin/rails console (e.g. -e production, --sandbox)."
+usage = 'arg "[args]" var=#true help="args forwarded to bin/rails console (e.g. -e production, --sandbox)"'
 run = """
   if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
-    docker compose exec app bin/rails console "$@"
+    docker compose exec app bin/rails console $usage_args
   else
-    docker compose run -e DISABLE_LOGCRAFT=true --rm -it app bin/rails console "$@"
+    docker compose run -e DISABLE_LOGCRAFT=true --rm -it app bin/rails console $usage_args
   fi
 """
 alias = "c"
