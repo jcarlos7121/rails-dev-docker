@@ -5,6 +5,7 @@
 - Docker
 - Mise
 - Neovim (optional)
+- Github CLI (optional, set GH_TOKEN securely in your environment)
 
 ## Installation
 
