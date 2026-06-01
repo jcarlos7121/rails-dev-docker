@@ -12,11 +12,11 @@ set -e
 #   <dbname>.sql     — plain SQL text (psql)
 #   <dbname>.sql.gz  — gzip-compressed SQL (gunzip | psql)
 #
-# Example: placing filial_health_rails_core_development.dump in the dump
-# directory creates and restores the filial_health_rails_core_development db.
+# Example: placing myapp_development.dump in the dump
+# directory creates and restores the myapp_development db.
 #
 # To create a dump:
-#   pg_dump -Fc -U postgres filial_health_rails_core_development > db-dumps/filial_health_rails_core_development.dump
+#   pg_dump -Fc -U postgres myapp_development > db-dumps/myapp_development.dump
 
 DUMP_DIR="/db-dumps"
 
