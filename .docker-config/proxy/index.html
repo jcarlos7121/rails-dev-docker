@@ -84,8 +84,8 @@
 </header>
 <div id="worktrees"></div>
 <script>
-const LABELS = { app: "app", email: "email", lookbook: "lookbook", "s3 console": "s3 console" };
-const ORDER = ["app", "email", "lookbook", "s3 console"];
+const LABELS = { app: "app", email: "email", lookbook: "lookbook", routes: "routes", "s3 console": "s3 console" };
+const ORDER = ["app", "email", "lookbook", "routes", "s3 console"];
 
 function extractHost(rule) {
   const m = rule.match(/Host\(`([^`]+)`\)/);
@@ -123,6 +123,7 @@ async function load() {
     if (c.kind === "app") {
       worktrees[c.name].email = `http://${host}/letter_opener`;
       worktrees[c.name].lookbook = `http://${host}/lookbook`;
+      worktrees[c.name].routes = `http://${host}/rails/info/routes`;
     }
   }
 
