@@ -1,0 +1,5 @@
+# Untracked files seeded into each new worktree (copied from the base worktree).
+# One path or glob per line, relative to the app root. Lines starting with # are ignored.
+.env.local
+config/master.key
+config/credentials/*.key
