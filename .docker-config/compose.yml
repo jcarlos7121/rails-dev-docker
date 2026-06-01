@@ -127,6 +127,7 @@ services:
         NODE_VERSION: ${NODE_VERSION}
     volumes:
       - ../.docker-config/home:/home/appuser
+      - ${NVIM_CONFIG_DIR}:/home/appuser/.config/nvim:ro
       - ../${CURRENT_WORKTREE_NAME}:/app
       - ${MAIN_WORKTREE_PATH}/.git:${MAIN_WORKTREE_PATH}/.git
       - shared_gems:/usr/local/bundle

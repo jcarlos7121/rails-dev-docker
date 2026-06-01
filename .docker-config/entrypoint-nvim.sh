@@ -8,11 +8,10 @@ npm install -g mcp-hub@latest
 
 export GIT_TERMINAL_PROMPT=0
 
+# Neovim config is provided read-only by a host bind mount (${NVIM_CONFIG_DIR}).
+# Plugins (lazy.nvim) install into the container's data dir on first launch.
 if [[ ! -f ~/.config/nvim/init.lua ]]; then
-	git clone --depth 1 https://github.com/jbigler/AstroNvim ~/.config/nvim
-else
-	git -C ~/.config/nvim remote set-url origin https://github.com/jbigler/AstroNvim.git
-	git -C ~/.config/nvim pull --ff-only
+	echo "WARN: ~/.config/nvim/init.lua not found — check NVIM_CONFIG_DIR mount" >&2
 fi
 
 # Then exec the container's main process (what's set as CMD in the Dockerfile).
