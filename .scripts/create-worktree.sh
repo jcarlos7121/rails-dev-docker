@@ -110,6 +110,27 @@ fi
 # mounting the shared_node_modules volume over the bind-mounted worktree.
 mkdir -p "${worktree_dir}/node_modules"
 
+# --- Seed untracked files (secrets/env) from the base worktree ---
+SEED_MANIFEST="${root}/.docker-config/worktree-seed.txt"
+base_dir="${root}/$(find_base_worktree_name)"
+if [ -f "$SEED_MANIFEST" ]; then
+  echo "Seeding untracked files from ${base_dir}..."
+  while IFS= read -r pattern || [ -n "$pattern" ]; do
+    case "$pattern" in ''|\#*) continue ;; esac
+    matched=0
+    for src in "$base_dir"/$pattern; do
+      [ -e "$src" ] || continue
+      matched=1
+      rel="${src#"$base_dir"/}"
+      dest="${worktree_dir}/${rel}"
+      mkdir -p "$(dirname "$dest")"
+      cp -p "$src" "$dest"
+      echo "  seeded: ${rel}"
+    done
+    [ "$matched" -eq 0 ] && echo "  warn: no match for seed pattern '${pattern}'" >&2
+  done < "$SEED_MANIFEST"
+fi
+
 echo ""
 echo "✓ Worktree created"
 echo "  Branch:          ${branch}"
