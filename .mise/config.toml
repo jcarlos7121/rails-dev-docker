@@ -16,11 +16,7 @@ description = "Start the Retest runner."
 depends = ["up"]
 run = """
   CMD='gem list -i retest > /dev/null 2>&1 || gem install retest && retest --rails'
-  if docker compose ps --services --filter "status=running" | grep -q '^app$'; then
-    docker compose exec -e DISABLE_COVERAGE=true -it app sh -c "$CMD"
-  else
-    docker compose run -e DISABLE_COVERAGE=true --rm -it app sh -c "$CMD"
-  fi
+  docker compose run -e DISABLE_COVERAGE=true --rm -it app sh -c "$CMD"
 """
 alias = "t"
 
