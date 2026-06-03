@@ -37,3 +37,7 @@ PGPASSWORD = "password"
 PLAYWRIGHT_HOST_PORT = "{% set id = env.WORKTREE_ID | int %}{{ 18888 + id }}"
 PLAYWRIGHT_HOST = "ws://localhost:{{ env.PLAYWRIGHT_HOST_PORT }}/connect"
 APP_HOST = "host.docker.internal"
+
+# IDE/test-reporter hint for host-run tests (e.g. minitest-reporters emits
+# machine-parseable RubyMine-style output when RM_INFO is set).
+RM_INFO = "true"
